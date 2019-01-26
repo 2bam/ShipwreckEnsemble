@@ -53,6 +53,15 @@ public class Module : MonoBehaviour
 		DestroyImmediate(doorPointsObject.gameObject);
 	}
 
+	void InnerConnect() {
+		//Connect all internal nodes between themselves.
+		foreach(var x in innerNodes)
+			foreach(var y in innerNodes)
+				if(x != y) {
+					x.neighborsSet.Add(y);
+					y.neighborsSet.Add(x);
+				}
+	}
 
 	LineRenderer CreateLine(Vector2 p0, Vector2 p1) {
 		var line = new GameObject("line").AddComponent<LineRenderer>();
@@ -70,12 +79,11 @@ public class Module : MonoBehaviour
 
 	private void Awake() {
 		ExtractPoints();
-		
+		InnerConnect();
 	}
 	// Start is called before the first frame update
 	void Start()
     {
-
 		Debug.Assert(innerNodes.Any(), "There are no door positions for module " + this);
 
 		body = GetComponent<Rigidbody2D>();

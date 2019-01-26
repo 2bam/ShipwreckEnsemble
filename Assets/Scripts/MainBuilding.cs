@@ -25,8 +25,17 @@ public class MainBuilding : MonoBehaviour
 			Annex(module, otherMod);
 	}
 
-	void Annex(Module collidedWith, Module newMod) {
-		Debug.Log($"Annexing new module {newMod} collided with {collidedWith}");
+	void PatchMainPos(Module module) {
+		// Patch positions to "main building relative" positions
+		foreach(var node in module.innerNodes) {
+			var wPos = module.transform.localToWorldMatrix.MultiplyPoint(node.localPos);
+			node.mainPos = this.transform.worldToLocalMatrix.MultiplyPoint(wPos);
+		}
+		
+	}
+
+	void Annex(Module ourMod, Module newMod) {
+		Debug.Log($"Annexing new module {newMod} collided with our {ourMod}");
 		if(_isRotating) {
 			Debug.Log("Can't annex while rotating");
 			return;
@@ -37,10 +46,11 @@ public class MainBuilding : MonoBehaviour
 		newMod.transform.SetParent(this.transform);
 
 		// Patch positions to "main building relative" positions
-		foreach(var node in newMod.innerNodes) {
-			var wPos = newMod.transform.localToWorldMatrix.MultiplyPoint(node.localPos);
-			node.mainPos = this.transform.worldToLocalMatrix.MultiplyPoint(wPos);
-		}
+		PatchMainPos(newMod);
+		//foreach(var node in newMod.innerNodes) {
+		//	var wPos = newMod.transform.localToWorldMatrix.MultiplyPoint(node.localPos);
+		//	node.mainPos = this.transform.worldToLocalMatrix.MultiplyPoint(wPos);
+		//}
 		
 		//Snap rotation
 		var angs = newMod.transform.eulerAngles;
@@ -49,12 +59,12 @@ public class MainBuilding : MonoBehaviour
 
 		//Align position
 		//TODO: Make sure no intersection occurs (relocate according to bounds and centers)
-		if(collidedWith != null) {
+		if(ourMod != null) {
 			//TODO:Check other collisions or nearby (<1 delta y distance) module to add doors
 
-			var best = collidedWith.innerNodes
-				.SelectMany(nb =>
-					newMod.innerNodes.Select(nn => Tuple.Create(nb, nn))
+			var best = ourMod.innerNodes
+				.SelectMany(on =>
+					newMod.innerNodes.Select(nn => Tuple.Create(on, nn))
 				)
 				.OrderBy(t => (t.Item1.mainPos - t.Item2.mainPos).sqrMagnitude)
 				.First()
@@ -66,6 +76,7 @@ public class MainBuilding : MonoBehaviour
 				+ transform.localToWorldMatrix.MultiplyPoint(best.Item1.mainPos).x
 				- transform.localToWorldMatrix.MultiplyPoint(best.Item2.mainPos).x
 				);
+			PatchMainPos(newMod);
 
 			best.Item1.neighborsSet.Add(best.Item2);
 			best.Item2.neighborsSet.Add(best.Item1);
@@ -86,23 +97,58 @@ public class MainBuilding : MonoBehaviour
 		newMod.Lock();
 	}
 
+	List<Module.Node> _npath;
+
     // Update is called once per frame
     void Update()
     {
+
+
 		var dir = Vector2.zero;
 		if(Input.GetKey(KeyCode.LeftArrow))
 			dir = Vector2.left;
 		if(Input.GetKey(KeyCode.RightArrow))
 			dir = Vector2.right;
 
+
+
 		if(Input.GetKeyDown(KeyCode.A))
 			angle -= 90;
 		if(Input.GetKeyDown(KeyCode.D))
 			angle += 90;
 
+
+
 		transform.position += (Vector3)dir * Time.deltaTime * linearSpeed;
 		transform.rotation = Quaternion.Euler(0, 0, angle);
+
+
+		if(Input.GetKeyDown(KeyCode.B)) {
+			var mods = GetComponentsInChildren<Module>();
+			var l = mods
+				.OrderBy(m => m.transform.position.y)
+				.ToList();
+			//var path = Bfs(l.innerNodes[0], l.innerNodes[l.Count-1])
+			//if(path) {
+			//	var npath = path.Cast<Module.Node>();
+			//	
+			//}
+			
+		}
     }
+
+	private void OnDrawGizmos() {
+		Gizmos.color = Color.yellow;
+		foreach(var m in GetComponentsInChildren<Module>())
+			if(m.innerNodes != null)
+				foreach(var n in m.innerNodes)
+					Gizmos.DrawWireSphere(transform.localToWorldMatrix.MultiplyPoint(n.mainPos), 0.2f);
+
+		Gizmos.color = Color.magenta;
+		if(_npath != null)
+			for(int i = 0; i < _npath.Count - 1; i++)
+				Gizmos.DrawLine(_npath[i].mainPos, _npath[i + 1].mainPos);
+	}
 
 	private void OnCollisionEnter2D(Collision2D collision) {
 		Debug.Log($"MainBuilding collision enter {collision}");
