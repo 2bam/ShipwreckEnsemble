@@ -128,23 +128,24 @@ public class MainBuilding : MonoBehaviour
 			var l = mods
 				.OrderBy(m => m.transform.position.y)
 				.ToList();
-			//var path = Bfs(l.innerNodes[0], l.innerNodes[l.Count-1])
-			//if(path) {
-			//	var npath = path.Cast<Module.Node>();
-			//	
-			//}
-			
+
+			var path = Pathfinder.BFS(l[0].innerNodes[0], l[l.Count - 1].innerNodes[0]);
+			if(path != null) {
+				_npath = path.Cast<Module.Node>().ToList();
+			}
+
 		}
     }
 
 	private void OnDrawGizmos() {
-		Gizmos.color = Color.yellow;
-		foreach(var m in GetComponentsInChildren<Module>())
-			if(m.innerNodes != null)
-				foreach(var n in m.innerNodes)
-					Gizmos.DrawWireSphere(transform.localToWorldMatrix.MultiplyPoint(n.mainPos), 0.2f);
+		//Gizmos.color = Color.yellow;
+		//foreach(var m in GetComponentsInChildren<Module>())
+		//	if(m.innerNodes != null)
+		//		foreach(var n in m.innerNodes)
+		//			Gizmos.DrawWireSphere(transform.localToWorldMatrix.MultiplyPoint(n.mainPos), 0.12f);
 
 		Gizmos.color = Color.magenta;
+		Gizmos.matrix = transform.localToWorldMatrix;
 		if(_npath != null)
 			for(int i = 0; i < _npath.Count - 1; i++)
 				Gizmos.DrawLine(_npath[i].mainPos, _npath[i + 1].mainPos);
