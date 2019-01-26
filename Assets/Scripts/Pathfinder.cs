@@ -8,6 +8,11 @@ public static class Pathfinder {
 		//initialization
 		var visited = new HashSet<INode>();// add contains remove
 		var parent = new Dictionary<INode, INode>();
+
+
+		parent[source] = null;
+
+
 		Queue<INode> nodeQueue = new Queue<INode>();
 		nodeQueue.Enqueue(source);
 
@@ -19,12 +24,13 @@ public static class Pathfinder {
 
 			if(current == dest) break;
 
-			if(!visited.Contains(current))
-				visited.Add(current);
+
+
 
 			//add it's neighbors to the queue.
 			foreach(var node in current.neighbors)
 				if(!visited.Contains(node)) {
+					visited.Add(node);
 					nodeQueue.Enqueue(node);
 					parent[node] = current;
 				}
