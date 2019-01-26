@@ -20,12 +20,12 @@ public class Module : MonoBehaviour
 	void ExtractPoints() {
 		actionPos = actionPointsObject
 			.Cast<Transform>()
-			.Select(xf => (Vector2) xf.transform.position)
+			.Select(xf => (Vector2) xf.transform.localPosition)
 			.ToList();
 
 		doorPos = doorPointsObject
 			.Cast<Transform>()
-			.Select(xf => (Vector2) xf.transform.position)
+			.Select(xf => (Vector2) xf.transform.localPosition)
 			.ToList();
 
 		DestroyImmediate(actionPointsObject.gameObject);
@@ -68,6 +68,7 @@ public class Module : MonoBehaviour
 		//for(int i = 0; i < count; i++) {
 		//	Gizmos.DrawLine(poly.points[i], poly.points[(i + 1) % count]);
 		//}		
+		Gizmos.matrix *= transform.localToWorldMatrix;
 		Gizmos.color = Color.green;
 		foreach(var p in doorPos)
 			Gizmos.DrawSphere(p, 0.05f);
