@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System;
 
 public class MainBuilding : MonoBehaviour
 {
@@ -20,7 +21,7 @@ public class MainBuilding : MonoBehaviour
 	public void OnAnnexCollisionEnter2D(Module module, Collision2D collision) {
 		Debug.Log($"Annex collision enter {module} {collision.collider} {collision.otherCollider} ");
 		var otherMod = collision.collider.GetComponentInParent<Module>();
-		if(otherMod != null)
+		if(otherMod != null && otherMod.owner != this)
 			Annex(module, otherMod);
 	}
 
@@ -31,25 +32,55 @@ public class MainBuilding : MonoBehaviour
 			return;
 		}
 
-		var nearest = GetComponentsInChildren<Module>()
-				.OrderBy(m => (m.transform.position - newMod.transform.position).sqrMagnitude)
-				.First();
 
 		newMod.owner = this;
 		newMod.transform.SetParent(this.transform);
+
+		// Patch positions to "main building relative" positions
+		foreach(var node in newMod.innerNodes) {
+			var wPos = newMod.transform.localToWorldMatrix.MultiplyPoint(node.localPos);
+			node.mainPos = this.transform.worldToLocalMatrix.MultiplyPoint(wPos);
+		}
 		
 		//Snap rotation
 		var angs = newMod.transform.eulerAngles;
-		angs.z = MathUtils.RoundToStep(angs.z, 90f);
+		angs.z = Utils.RoundToStep(angs.z, 90f);
 		newMod.transform.eulerAngles = angs;
-		
+
 		//Align position
 		//TODO: Make sure no intersection occurs (relocate according to bounds and centers)
 		if(collidedWith != null) {
-			collidedWith = nearest;
-			var np = newMod.transform.position;
-			np.x = collidedWith.transform.position.x;
-			newMod.transform.position = np;
+			//TODO:Check other collisions or nearby (<1 delta y distance) module to add doors
+
+			var best = collidedWith.innerNodes
+				.SelectMany(nb =>
+					newMod.innerNodes.Select(nn => Tuple.Create(nb, nn))
+				)
+				.OrderBy(t => (t.Item1.mainPos - t.Item2.mainPos).sqrMagnitude)
+				.First()
+				;
+
+			var nn_xf = best.Item2.module.transform;
+			//TODO: Using X depends on rotation!!
+			nn_xf.SetX(nn_xf.GetX()
+				+ transform.localToWorldMatrix.MultiplyPoint(best.Item1.mainPos).x
+				- transform.localToWorldMatrix.MultiplyPoint(best.Item2.mainPos).x
+				);
+
+			best.Item1.neighborsSet.Add(best.Item2);
+			best.Item2.neighborsSet.Add(best.Item1);
+
+			//var nearest = GetComponentsInChildren<Module>()
+			//		.SelectMany(m =>
+			//			m.doorPos.Select(p => Tuple.Create(m, p)
+			//		)
+			//		.OrderBy(m => (m.transform.position - newMod.transform.position).sqrMagnitude)
+			//		.Se
+			//		.First();
+
+			//var np = newMod.transform.position;
+			//np.x = nearest.transform.position.x;
+			//newMod.transform.position = np;
 		}
 		//Make static
 		newMod.Lock();

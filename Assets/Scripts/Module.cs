@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+public enum NodeType {
+	Way
+	, Door
+	, Kitchen
+}
+
 // Module component - add to top hierarchy class for modules.
 public class Module : MonoBehaviour
 {
@@ -14,19 +20,34 @@ public class Module : MonoBehaviour
 	public Transform actionPointsObject;
 	public Transform doorPointsObject;
 
-	public List<Vector2> actionPos;
-	public List<Vector2> doorPos;
+	public class Node : INode {
+		public Vector2 position { get => mainPos; }
+		public IEnumerable<INode> neighbors { get => neighborsSet; }
+
+		public NodeType type;
+		public Module module;
+		public Vector2 localPos;
+		public Vector2 mainPos;
+		public HashSet<Node> neighborsSet = new HashSet<Node>();
+		public Node(NodeType type, Module module, Vector2 position) {
+			this.type = type;
+			this.module = module;
+			this.localPos = position;
+		}
+	}
+
+	public List<Node> innerNodes;
 
 	void ExtractPoints() {
-		actionPos = actionPointsObject
-			.Cast<Transform>()
-			.Select(xf => (Vector2) xf.transform.localPosition)
-			.ToList();
+		var o = actionPointsObject;
+		Debug.Assert(o.localPosition == Vector3.zero && o.localRotation == Quaternion.identity && o.localScale == Vector3.one);
+		o = doorPointsObject;
+		Debug.Assert(o.localPosition == Vector3.zero && o.localRotation == Quaternion.identity && o.localScale == Vector3.one);
 
-		doorPos = doorPointsObject
-			.Cast<Transform>()
-			.Select(xf => (Vector2) xf.transform.localPosition)
-			.ToList();
+		innerNodes = doorPointsObject
+					.Cast<Transform>()
+					.Select(xf => new Node(NodeType.Door, this, xf.transform.localPosition))
+					.ToList();
 
 		DestroyImmediate(actionPointsObject.gameObject);
 		DestroyImmediate(doorPointsObject.gameObject);
@@ -47,10 +68,15 @@ public class Module : MonoBehaviour
 		return line;
 	}
 
-    // Start is called before the first frame update
-    void Start()
-    {
+	private void Awake() {
 		ExtractPoints();
+		
+	}
+	// Start is called before the first frame update
+	void Start()
+    {
+
+		Debug.Assert(innerNodes.Any(), "There are no door positions for module " + this);
 
 		body = GetComponent<Rigidbody2D>();
 		body.velocity = initialVelocity;
@@ -68,14 +94,27 @@ public class Module : MonoBehaviour
 		//for(int i = 0; i < count; i++) {
 		//	Gizmos.DrawLine(poly.points[i], poly.points[(i + 1) % count]);
 		//}		
-		Gizmos.matrix *= transform.localToWorldMatrix;
-		Gizmos.color = Color.green;
-		foreach(var p in doorPos)
-			Gizmos.DrawSphere(p, 0.05f);
+		if(!Application.isPlaying)
+			return;
 
-		Gizmos.color = Color.blue;
-		foreach(var p in actionPos)
-			Gizmos.DrawSphere(p, 0.05f);
+		foreach(var node in innerNodes) {
+			if(node.type == NodeType.Way)
+				Gizmos.color = Color.gray;
+			else if(node.type == NodeType.Door)
+				Gizmos.color = Color.green;
+			else
+				Gizmos.color = Color.blue;
+
+			var wp0 = transform.localToWorldMatrix.MultiplyPoint(node.localPos);
+			Gizmos.DrawSphere(wp0, 0.05f);
+			foreach(var neighbor in node.neighborsSet) {
+				var wp1 = neighbor.module.transform.localToWorldMatrix.MultiplyPoint(
+					neighbor.localPos
+				);
+				Gizmos.DrawLine(wp0, wp1);
+			}
+		}
+
 	}
 
 	public void Lock() {
@@ -84,7 +123,7 @@ public class Module : MonoBehaviour
 	}
 
 	private void OnCollisionEnter2D(Collision2D collision) {
-		Debug.Log($"Moduel collision enter {collision}");
+		Debug.Log($"Module collision enter {collision}");
 		if(owner)
 			owner.OnAnnexCollisionEnter2D(this, collision);
 	}
