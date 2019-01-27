@@ -130,9 +130,9 @@ public class Module : MonoBehaviour
 		var line = new GameObject("line").AddComponent<LineRenderer>();
 		line.material = matLine;
 		line.transform.parent = this.transform;
-		line.transform.localPosition = new Vector3(0, 0, -1);
+		line.transform.localPosition = new Vector3(0, 0, -1.9f);
 		line.useWorldSpace = false;
-		line.startWidth = line.endWidth = 0.1f;
+		line.startWidth = line.endWidth = 0.2f;
 		var color = index < walls.Length && walls[index] ? Color.red : Color.green;
 		color.a = 0.5f;
 		line.startColor = line.endColor = color;

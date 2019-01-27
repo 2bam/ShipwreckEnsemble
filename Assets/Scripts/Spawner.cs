@@ -14,19 +14,31 @@ public class Spawner : MonoBehaviour
 
     ShuffleBag<Module> _moduleBag;
 
-    // Start is called before the first frame update
-    void Awake()
+	IEnumerator SpawnCoroutine() {
+		var wait = new WaitForSeconds(7f);
+		while(true) {
+			yield return wait;
+			Spawn();
+		}
+	}
+
+	private void Start() {
+		StartCoroutine(SpawnCoroutine());
+	}
+
+	void Awake()
     {
         _cfg = FindObjectOfType<Config>();
         _main = FindObjectOfType<MainBuilding>();
         _moduleBag = new ShuffleBag<Module>(modulePrefabs);
+
     }
 
 
     private void UpdateSpawnerPosition()
     {
         var p = transform.position;
-        float objPadding = 5;
+        float objPadding = 10;
         float camPosY = Camera.main.transform.position.y;
         float camSizeY = Camera.main.orthographicSize;
         float spawnPosY = camPosY + camSizeY + objPadding;

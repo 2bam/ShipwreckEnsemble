@@ -87,41 +87,28 @@ public class MainBuilding : MonoBehaviour
 
 			//TODO IMPORTANT: Detect if |x|>|y|
 			var candidates = pairs
-				.Select(t => (delta: t.Item1.mainPos - t.Item2.mainPos, mag: (t.Item1.mainPos - t.Item2.mainPos).sqrMagnitude, t.ourNode, t.newNode))
+				.Select(t => (delta: t.ourNode.mainPos - t.newNode.mainPos, mag: (t.Item1.mainPos - t.Item2.mainPos).sqrMagnitude, t.ourNode, t.newNode))
 				//.Where(t => Mathf.Abs(t.delta.x) < 0.5f)
-				.Where(t => t.delta.sqrMagnitude < 1.41f)
+				
+				//.OrderByDescending(t => t.mag < 1.41f)
+				//.ThenBy(t => t.mag)
 				.OrderBy(t => t.mag)
-				.Select(t => (t.ourNode, t.newNode))
+
+				//.Select(t => (t.ourNode, t.newNode))
+				.ToList()
 				;
 
 			//FIXME:
 			//candidates = candidates.Take(1);
 			bool snap = true;
 
-			foreach(var good in candidates) {
+			foreach(var t in candidates) {
+				var delta = t.ourNode.mainPos - t.newNode.mainPos;
 
-				var wp1 = transform.localToWorldMatrix.MultiplyPoint(good.ourNode.mainPos);
-				var wp2 = transform.localToWorldMatrix.MultiplyPoint(good.newNode.mainPos);
+				var wp1 = transform.localToWorldMatrix.MultiplyPoint(t.ourNode.mainPos);
+				var wp2 = transform.localToWorldMatrix.MultiplyPoint(t.newNode.mainPos);
 
-				Vector2 intersection1, intersection2;
-				Module.LineData ld1, ld2;
-				if(!good.newNode.module.GetOkIntersection(wp1, wp2, out intersection1, out ld1)) {
-					Debug.DrawLine(wp1, wp2, Color.red, 5f);
-					continue;
-				}
-				if(!good.ourNode.module.GetOkIntersection(wp1, wp2, out intersection2, out ld2)) {
-					Debug.DrawLine(wp1, wp2, Color.magenta, 5f);
-					continue;
-				}
-				Debug.DrawLine(intersection1, intersection1+Vector2.up, Color.blue, 5f);
-				Debug.DrawLine(intersection2, intersection2+Vector2.up, Color.cyan, 5f);
-
-				var intersection = (intersection1 + intersection2) * .5f;
-
-				//var intersection = (wp1 + wp2) * .5f;
-
-				var newXf = good.newNode.module.transform;
-
+				var newXf = t.newNode.module.transform;
 				if(snap) {
 					snap = false; //Only snap to best candidate
 								  //FIXME: Using X depends on rotation!!
@@ -132,17 +119,41 @@ public class MainBuilding : MonoBehaviour
 
 					//Patch positions
 					PatchMainPos(newMod);
-					wp2 = transform.localToWorldMatrix.MultiplyPoint(good.newNode.mainPos);
+					wp2 = transform.localToWorldMatrix.MultiplyPoint(t.newNode.mainPos);
 				}
 
+				if(delta.sqrMagnitude >= 1.41f)
+					continue;
+
+				Vector2 intersection1, intersection2;
+				Module.LineData ld1, ld2;
+				if(!t.newNode.module.GetOkIntersection(wp1, wp2, out intersection1, out ld1)) {
+					Debug.DrawLine(wp1, wp2, Color.red, 5f);
+					continue;
+				}
+				if(!t.ourNode.module.GetOkIntersection(wp1, wp2, out intersection2, out ld2)) {
+					Debug.DrawLine(wp1, wp2, Color.magenta, 5f);
+					continue;
+				}
+				Debug.DrawLine(intersection1, intersection1+Vector2.up*0.1f, Color.blue, 5f);
+				Debug.DrawLine(intersection2, intersection2+Vector2.up*0.1f, Color.cyan, 5f);
+
+				var intersection = (intersection1 + intersection2) * .5f;
+
+				//WORKAROUND (intersection doesn't work...)
+				intersection = (wp1 + wp2) * .5f;
+
+
+
+
 				var door = Instantiate(doorPrefab, this.transform);
-				door.transform.rotation = Utils.RotationFromNormalizedDir((wp1 - wp2).normalized);
+				door.transform.rotation = Utils.RotationFromNormalizedDirStep((wp1 - wp2).normalized, 90);
 				var pi = (Vector3)intersection;
 				pi.z = -0.9f;
 				door.transform.position = pi;
 
-				good.ourNode.neighborsSet.Add(good.newNode);
-				good.newNode.neighborsSet.Add(good.ourNode);
+				t.ourNode.neighborsSet.Add(t.newNode);
+				t.newNode.neighborsSet.Add(t.ourNode);
 			}
 		}
 
