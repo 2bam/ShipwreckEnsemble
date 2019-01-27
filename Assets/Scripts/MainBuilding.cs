@@ -6,16 +6,25 @@ using System;
 
 public class MainBuilding : MonoBehaviour
 {
+	Config _cfg;
 	bool _isRotating { get; set;  } = false;
 	public float linearSpeed = 10f;
 	//public float angularSpeed = 45f;
 	public float angle = 0;
 
+	public List<Node> allNodes = new List<Node>();
+
     void Start()
     {
+		_cfg = FindObjectOfType<Config>();
 		// Annex starting children
-		foreach(var m in GetComponentsInChildren<Module>())
+		foreach(var m in GetComponentsInChildren<Module>()) {
 			Annex(null, m);
+			var npc = Instantiate(_cfg.npcPrefab);
+			npc.SetNodeAt(m.innerNodes[0]);
+		}
+
+
     }
 
 	public void OnAnnexCollisionEnter2D(Module module, Collision2D collision) {
@@ -41,6 +50,7 @@ public class MainBuilding : MonoBehaviour
 			return;
 		}
 
+		allNodes.AddRange(newMod.innerNodes);
 
 		newMod.owner = this;
 		newMod.transform.SetParent(this.transform);
@@ -97,7 +107,7 @@ public class MainBuilding : MonoBehaviour
 		newMod.Lock();
 	}
 
-	List<Module.Node> _npath;
+	List<Node> _npath;
 
     // Update is called once per frame
     void Update()
@@ -131,7 +141,7 @@ public class MainBuilding : MonoBehaviour
 
 			var path = Pathfinder.BFS(l[0].innerNodes[0], l[l.Count - 1].innerNodes[0]);
 			if(path != null) {
-				_npath = path.Cast<Module.Node>().ToList();
+				_npath = path.Cast<Node>().ToList();
 			}
 
 		}

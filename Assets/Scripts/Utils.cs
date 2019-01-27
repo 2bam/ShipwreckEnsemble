@@ -14,6 +14,11 @@ public static class Utils {
 		return Mathf.Round(x / step) * step;
 	}
 
+	public static T Choice<T>(this IList<T> collection) {
+		return collection[UnityEngine.Random.Range(0, collection.Count)];
+	}
+
+
 	public static void SetX(this Component comp, float x) {
 		var p = comp.transform.position;
 		p.x = x;

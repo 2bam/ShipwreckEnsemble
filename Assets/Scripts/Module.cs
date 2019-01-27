@@ -3,10 +3,29 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+
+
 public enum NodeType {
+	//NEVER CHANGE THE ORDER OR REMOVE ANY OF THESE LABELS
 	Way
 	, Door
 	, Kitchen
+}
+
+public class Node : INode {
+	public Vector2 position { get => mainPos; }
+	public IEnumerable<INode> neighbors { get => neighborsSet; }
+
+	public NodeType type;
+	public Module module;
+	public Vector2 localPos;
+	public Vector2 mainPos;
+	public HashSet<Node> neighborsSet = new HashSet<Node>();
+	public Node(NodeType type, Module module, Vector2 position) {
+		this.type = type;
+		this.module = module;
+		this.localPos = position;
+	}
 }
 
 // Module component - add to top hierarchy class for modules.
@@ -20,21 +39,7 @@ public class Module : MonoBehaviour
 	public Transform actionPointsObject;
 	public Transform doorPointsObject;
 
-	public class Node : INode {
-		public Vector2 position { get => mainPos; }
-		public IEnumerable<INode> neighbors { get => neighborsSet; }
 
-		public NodeType type;
-		public Module module;
-		public Vector2 localPos;
-		public Vector2 mainPos;
-		public HashSet<Node> neighborsSet = new HashSet<Node>();
-		public Node(NodeType type, Module module, Vector2 position) {
-			this.type = type;
-			this.module = module;
-			this.localPos = position;
-		}
-	}
 
 	public List<Node> innerNodes;
 

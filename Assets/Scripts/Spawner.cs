@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Spawner : MonoBehaviour
 {
-	public Module modulePrefab;
+	public Module[] modulePrefabs;
 	MainBuilding _main;
 	public float modSpeed;
 
@@ -23,7 +23,7 @@ public class Spawner : MonoBehaviour
 
 		Debug.Log("Bounds " + bounds);
 		var sx = Random.Range(bounds.min.x, bounds.max.x);
-		var mod = Instantiate(modulePrefab);
+		var mod = Instantiate(modulePrefabs[Random.Range(0, modulePrefabs.Length)]);
 		mod.transform.position = new Vector2(sx, this.transform.position.y);
 		mod.initialVelocity = Vector2.down * modSpeed;
 	}
