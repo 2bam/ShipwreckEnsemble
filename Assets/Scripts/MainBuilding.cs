@@ -149,15 +149,17 @@ public class MainBuilding : MonoBehaviour
 	}
 
 	private void LateUpdate() {
-		// Update main building bounds
-		var colliders = GetComponentsInChildren<Collider2D>();
-		bounds = new Bounds();
-		foreach(var col in colliders)
-			bounds.Encapsulate(col.bounds);		
+	
 	}
 
 	void Update()
     {
+		// Update main building bounds
+		var colliders = GetComponentsInChildren<Collider2D>();
+		bounds = new Bounds();
+		foreach(var col in colliders)
+			bounds.Encapsulate(col.bounds);	
+
 		var dir = Vector2.zero;
 		if(Input.GetKey(KeyCode.LeftArrow))
 			dir = Vector2.left;

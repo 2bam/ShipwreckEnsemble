@@ -15,7 +15,7 @@ public class Spawner : MonoBehaviour
     ShuffleBag<Module> _moduleBag;
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         _cfg = FindObjectOfType<Config>();
         _main = FindObjectOfType<MainBuilding>();
@@ -31,8 +31,8 @@ public class Spawner : MonoBehaviour
         float camSizeY = Camera.main.orthographicSize;
         float spawnPosY = camPosY + camSizeY + objPadding;
 
-        p.y = spawnPosY;
-        transform.position = p;
+			p.y = spawnPosY;
+			transform.position = p;
     }
 
 
@@ -65,9 +65,7 @@ public class Spawner : MonoBehaviour
 
     private void LateUpdate()
     {
-   	 UpdateSpawnerPosition();
-        var p = transform.position;
-        p.y = _main.bounds.max.y + 10f;
-        transform.position = p;
+   		UpdateSpawnerPosition();
+
     }
 }
