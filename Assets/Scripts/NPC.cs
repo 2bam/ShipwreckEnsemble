@@ -24,6 +24,7 @@ public class NPC : MonoBehaviour {
 	public event Action<NPC> onNPCDied = delegate { };
 	float _speed;
 	NeedType currentNeed;
+	public float max;
 
 	NeedType[] raiseKeys;
 
@@ -135,7 +136,7 @@ public class NPC : MonoBehaviour {
 
     void Update()
     {
-		var max = needs.Values.Max();
+		max = needs.Values.Max();
 		_debug = $"{currentNeed} max={max:F2}";
 		_tm.text = _debug;
 

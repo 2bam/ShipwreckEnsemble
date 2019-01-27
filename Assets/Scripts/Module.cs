@@ -151,9 +151,18 @@ public class Module : MonoBehaviour
 
 		var poly = GetComponent<PolygonCollider2D>();
 		int count = poly.GetTotalPointCount();
+
+		//Fix poly snap in runtime
+		var points = poly.points;
+		for(int i = 0; i < count; i++) {
+			points[i] = Utils.RoundVec(points[i], 1f);
+		}
+		poly.points = points;
+
+		//Collect border data
 		lineDatas = new LineData[count];
 		for(int i = 0; i < count; i++) {
-			lineDatas[i] = CreateLine(i, poly.points[i], poly.points[(i + 1) % count]);
+			lineDatas[i] = CreateLine(i, points[i], points[(i + 1) % count]);
 		}
     }
 
@@ -164,7 +173,12 @@ public class Module : MonoBehaviour
 			Gizmos.matrix = transform.localToWorldMatrix * Matrix4x4.Scale(Vector3.one * (1+s*.05f));
 			for(int i = 0; i < count; i++) {
 				Gizmos.color = i < walls.Length && walls[i] ? Color.red : Color.green;
-				Gizmos.DrawLine(poly.points[i], poly.points[(i + 1) % count]);
+				//Gizmos.DrawLine(poly.points[i], poly.points[(i + 1) % count]);
+				//Gizmos.color = Color.black;
+				Gizmos.DrawLine(
+					Utils.RoundVec(poly.points[i], 1f)
+					, Utils.RoundVec(poly.points[(i + 1) % count], 1f)
+					);
 			}
 		}
 
