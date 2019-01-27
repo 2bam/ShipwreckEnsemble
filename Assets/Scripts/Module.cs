@@ -16,16 +16,17 @@ public class Node : INode {
 	public Vector2 position { get => mainPos; }
 	public IEnumerable<INode> neighbors { get => neighborsSet; }
 
-	public NodeType type;
+	public NeedType needType;
+	public NPC inUseBy;
 	public Module module;
 	public Vector2 localPos;
 	public Vector2 mainPos;
 	public HashSet<Node> neighborsSet = new HashSet<Node>();
-	public Node(NodeType type, Module module, Vector2 position) {
-		this.type = type;
+	public Node(NeedType needType, Module module, Vector2 position) {
+		this.needType = needType;
 		this.module = module;
 		this.localPos = position;
-		this.mainPos = position;		//Workaround until taken to main building
+		this.mainPos = position;		//Workaround until annexed to main building
 	}
 }
 
@@ -44,8 +45,39 @@ public class Module : MonoBehaviour
 	public Transform doorPointsObject;
 
 
+	public bool[] walls = new bool[0];
 
-	public List<Node> innerNodes;
+	public List<Node> innerNodes = new List<Node>();
+
+	public class LineData {
+		public LineRenderer rend;
+		public Vector2 localP1, localP2;
+		public bool isWall;
+	}
+	public LineData[] lineDatas;
+
+	public bool GetOkIntersection(Vector2 a1, Vector2 a2, out Vector2 intersection, out LineData lineData) {
+		foreach(var line in lineDatas) {
+			if(line.isWall)
+				continue;
+
+			var b1 = transform.localToWorldMatrix * line.localP1;
+			var b2 = transform.localToWorldMatrix * line.localP2;
+			if(Utils.LineSegmentsIntersection(
+				a1, a2
+				, b1, b2
+				, out intersection
+			)) {
+				lineData = line;
+				return true;
+
+			}
+
+		}
+		intersection = Vector2.zero;
+		lineData = null;
+		return false;
+	}
 
 	void ExtractPoints() {
 		var o = actionPointsObject;
@@ -55,10 +87,21 @@ public class Module : MonoBehaviour
 
 		innerNodes = doorPointsObject
 					.Cast<Transform>()
-					.Select(xf => new Node(NodeType.Door, this, xf.transform.localPosition))
+					.Select(xf => new Node(NeedType.None, this, xf.transform.localPosition))
 					.ToList();
 
-		DestroyImmediate(actionPointsObject.gameObject);
+		innerNodes.AddRange(
+			actionPointsObject
+					.Cast<Transform>()
+					.Select(xf => {
+						var ao = xf.GetComponent<ActionObject>();
+						return new Node(ao != null ? ao.needType : NeedType.None, this, xf.transform.localPosition);
+					})
+					.ToList()
+		);
+		
+
+		//DestroyImmediate(actionPointsObject.gameObject);
 		DestroyImmediate(doorPointsObject.gameObject);
 	}
 
@@ -72,18 +115,26 @@ public class Module : MonoBehaviour
 				}
 	}
 
-	LineRenderer CreateLine(Vector2 p0, Vector2 p1) {
+	LineData CreateLine(int index, Vector2 p1, Vector2 p2) {
 		var line = new GameObject("line").AddComponent<LineRenderer>();
 		line.material = matLine;
 		line.transform.parent = this.transform;
 		line.transform.localPosition = new Vector3(0, 0, -1);
 		line.useWorldSpace = false;
 		line.startWidth = line.endWidth = 0.1f;
-		line.startColor = line.endColor = Color.red;
-		line.SetPosition(0, transform.localToWorldMatrix * p0);
-		line.SetPosition(1, transform.localToWorldMatrix * p1);
+		var color = index < walls.Length && walls[index] ? Color.red : Color.green;
+		color.a = 0.5f;
+		line.startColor = line.endColor = color;
+		line.SetPosition(0, p1);
+		line.SetPosition(1, p2);
 
-		return line;
+		var lineData = new LineData();
+		lineData.rend = line;
+		lineData.localP1 = p1;
+		lineData.localP2 = p2;
+		lineData.isWall = index < walls.Length && walls[index];
+
+		return lineData;
 	}
 
 	private void Awake() {
@@ -100,27 +151,31 @@ public class Module : MonoBehaviour
 
 		var poly = GetComponent<PolygonCollider2D>();
 		int count = poly.GetTotalPointCount();
+		lineDatas = new LineData[count];
 		for(int i = 0; i < count; i++) {
-			CreateLine(poly.points[i], poly.points[(i + 1) % count]);
+			lineDatas[i] = CreateLine(i, poly.points[i], poly.points[(i + 1) % count]);
 		}
     }
 
 	private void OnDrawGizmos() {
-		//var poly = GetComponent<PolygonCollider2D>();
-		//int count = poly.GetTotalPointCount();
-		//for(int i = 0; i < count; i++) {
-		//	Gizmos.DrawLine(poly.points[i], poly.points[(i + 1) % count]);
-		//}		
+		var poly = GetComponent<PolygonCollider2D>();
+		int count = poly.GetTotalPointCount();
+		for(int s = -1; s <= 1; s++) {
+			Gizmos.matrix = transform.localToWorldMatrix * Matrix4x4.Scale(Vector3.one * (1+s*.05f));
+			for(int i = 0; i < count; i++) {
+				Gizmos.color = i < walls.Length && walls[i] ? Color.red : Color.green;
+				Gizmos.DrawLine(poly.points[i], poly.points[(i + 1) % count]);
+			}
+		}
+
 		if(!Application.isPlaying)
 			return;
 
+		Gizmos.matrix = Matrix4x4.identity;
+
 		foreach(var node in innerNodes) {
-			if(node.type == NodeType.Way)
-				Gizmos.color = Color.gray;
-			else if(node.type == NodeType.Door)
-				Gizmos.color = Color.green;
-			else
-				Gizmos.color = Color.blue;
+			Gizmos.color = Color.green;
+		
 
 			var wp0 = transform.localToWorldMatrix.MultiplyPoint(node.localPos);
 			Gizmos.DrawSphere(wp0, 0.05f);
@@ -140,7 +195,7 @@ public class Module : MonoBehaviour
 	}
 
 	private void OnCollisionEnter2D(Collision2D collision) {
-		Debug.Log($"Module collision enter {collision}");
+		Debug.Log($"Module collision enter {this}: {collision.collider} {collision.otherCollider}");
 		if(owner)
 			owner.OnAnnexCollisionEnter2D(this, collision);
 	}
