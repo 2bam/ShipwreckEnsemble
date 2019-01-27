@@ -337,7 +337,7 @@ MonoBehaviour:
   matLine: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
   actionPointsObject: {fileID: 5743541430978852956}
   doorPointsObject: {fileID: 6738066602427645913}
-  walls: 
+  walls: 0100000001010001
 --- !u!50 &2301304692126381368
 Rigidbody2D:
   serializedVersion: 4
@@ -838,13 +838,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7789674184874134020}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 1, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 7467463411968587326}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
 --- !u!212 &4527564642795026810
 SpriteRenderer:
   m_ObjectHideFlags: 0

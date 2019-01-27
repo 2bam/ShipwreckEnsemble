@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class CamController : MonoBehaviour
 {
+
+
 	Camera _cam;
 	MainBuilding _main;
 	private void Start() {
@@ -12,7 +14,7 @@ public class CamController : MonoBehaviour
 	}
 
 	private void LateUpdate() {
-		var mult = 3f;
+		var mult = 1.5f;
 
 		//https://answers.unity.com/questions/1231701/fitting-bounds-into-orthographic-2d-camera.html
 		var bounds = _main.bounds;
@@ -22,15 +24,16 @@ public class CamController : MonoBehaviour
 		float targetRatio = bounds.size.x / bounds.size.y;
 
 		if(screenRatio >= targetRatio) {
-			_cam.orthographicSize = mult * bounds.size.y / 2;
+            _cam.orthographicSize = Mathf.Lerp(_cam.orthographicSize, mult * bounds.size.y / 2, 3 * Time.deltaTime);
 		}
 		else {
 			float differenceInSize = targetRatio / screenRatio;
-			_cam.orthographicSize = mult * bounds.size.y / 2 * differenceInSize;
+            _cam.orthographicSize = Mathf.Lerp(_cam.orthographicSize, mult * bounds.size.y / 2 * differenceInSize, 3 * Time.deltaTime);
 		}
 
-		//transform.position = new Vector3(bounds.center.x, bounds.center.y, -1f);
+		var newPosition = new Vector3(bounds.center.x, bounds.center.y, -1f);
+        transform.position = Vector3.Lerp(transform.position, newPosition, 3 * Time.deltaTime);
 
-	}
+    }
 
 }

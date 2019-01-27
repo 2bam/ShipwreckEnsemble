@@ -26,7 +26,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1620441906676876352}
   m_LocalRotation: {x: -0, y: -0, z: 0.70710576, w: 0.70710784}
-  m_LocalPosition: {x: 0.09, y: 0.92, z: -0.5}
+  m_LocalPosition: {x: 0.22, y: 1, z: -0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 5743541430978852956}
@@ -69,7 +69,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 42bd6f9724f7653489eeeab42198869d, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 1c46214cfd9a07848a0c0ceaa49298ef, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -421,7 +421,7 @@ MonoBehaviour:
   matLine: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
   actionPointsObject: {fileID: 5743541430978852956}
   doorPointsObject: {fileID: 6738066602427645913}
-  walls: 
+  walls: 01000101
 --- !u!50 &2301304692126381368
 Rigidbody2D:
   serializedVersion: 4

@@ -145,7 +145,7 @@ MonoBehaviour:
   matLine: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
   actionPointsObject: {fileID: 5743541430978852956}
   doorPointsObject: {fileID: 6738066602427645913}
-  walls: 
+  walls: 01000100
 --- !u!50 &2301304692126381368
 Rigidbody2D:
   serializedVersion: 4
