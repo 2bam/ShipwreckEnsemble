@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 0
     path: 
     guid: 00000000000000000000000000000000
+  - enabled: 1
+    path: Assets/DANGERZONE/Main.unity
+    guid: 41900869c8e855b4c85bfdb494a627a0
   m_configObjects: {}
