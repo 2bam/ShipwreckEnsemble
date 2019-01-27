@@ -50,7 +50,7 @@ public class Spawner : MonoBehaviour
         npc.name = "NPC" + _index;
         npc.SetNodeAt(mod.innerNodes.Choice());
 		if(IconsController.Instance != null)
-			IconsController.Instance.SpawnNewElement(npc.gameObject);
+			IconsController.Instance.SpawnNewElement(npc.gameObject.GetComponent<NPC>());
 
         _index++;
     }
