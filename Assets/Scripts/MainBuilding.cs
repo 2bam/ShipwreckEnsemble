@@ -88,40 +88,58 @@ public class MainBuilding : MonoBehaviour
 			//TODO IMPORTANT: Detect if |x|>|y|
 			var candidates = pairs
 				.Select(t => (delta: t.Item1.mainPos - t.Item2.mainPos, mag: (t.Item1.mainPos - t.Item2.mainPos).sqrMagnitude, t.ourNode, t.newNode))
-				.Where(t => Mathf.Abs(t.delta.x) < 0.5f)
+				//.Where(t => Mathf.Abs(t.delta.x) < 0.5f)
+				.Where(t => t.delta.sqrMagnitude < 1.41f)
 				.OrderBy(t => t.mag)
 				.Select(t => (t.ourNode, t.newNode))
 				;
 
 			//FIXME:
-			candidates = candidates.Take(1);
+			//candidates = candidates.Take(1);
+			bool snap = true;
 
 			foreach(var good in candidates) {
 
 				var wp1 = transform.localToWorldMatrix.MultiplyPoint(good.ourNode.mainPos);
 				var wp2 = transform.localToWorldMatrix.MultiplyPoint(good.newNode.mainPos);
 
-				//FIXME:
-				//Vector2 intersection1, intersection2;
-				//Module.LineData ld1, ld2;
-				//if(!good.newNode.module.GetOkIntersection(wp1, wp2, out intersection1, out ld1))
-				//	continue;
-				//if(!good.ourNode.module.GetOkIntersection(wp1, wp2, out intersection2, out ld2))
-				//	continue;
-				//var intersection = (intersection1 + intersection2) * .5f;
-				var intersection = (wp1 + wp2) * .5f;
+				Vector2 intersection1, intersection2;
+				Module.LineData ld1, ld2;
+				if(!good.newNode.module.GetOkIntersection(wp1, wp2, out intersection1, out ld1)) {
+					Debug.DrawLine(wp1, wp2, Color.red, 5f);
+					continue;
+				}
+				if(!good.ourNode.module.GetOkIntersection(wp1, wp2, out intersection2, out ld2)) {
+					Debug.DrawLine(wp1, wp2, Color.magenta, 5f);
+					continue;
+				}
+				Debug.DrawLine(intersection1, intersection1+Vector2.up, Color.blue, 5f);
+				Debug.DrawLine(intersection2, intersection2+Vector2.up, Color.cyan, 5f);
 
-				var nn_xf = good.newNode.module.transform;
-				//FIXME: Using X depends on rotation!!
-				nn_xf.SetX(nn_xf.GetX()
-					+ wp1.x
-					- wp2.x
-					);
-				PatchMainPos(newMod);
+				var intersection = (intersection1 + intersection2) * .5f;
+
+				//var intersection = (wp1 + wp2) * .5f;
+
+				var newXf = good.newNode.module.transform;
+
+				if(snap) {
+					snap = false; //Only snap to best candidate
+								  //FIXME: Using X depends on rotation!!
+					newXf.SetX(newXf.GetX()
+						+ wp1.x
+						- wp2.x
+						);
+
+					//Patch positions
+					PatchMainPos(newMod);
+					wp2 = transform.localToWorldMatrix.MultiplyPoint(good.newNode.mainPos);
+				}
 
 				var door = Instantiate(doorPrefab, this.transform);
 				door.transform.rotation = Utils.RotationFromNormalizedDir((wp1 - wp2).normalized);
-				door.transform.position = intersection;
+				var pi = (Vector3)intersection;
+				pi.z = -0.9f;
+				door.transform.position = pi;
 
 				good.ourNode.neighborsSet.Add(good.newNode);
 				good.newNode.neighborsSet.Add(good.ourNode);
@@ -130,7 +148,15 @@ public class MainBuilding : MonoBehaviour
 
 	}
 
-    void Update()
+	private void LateUpdate() {
+		// Update main building bounds
+		var colliders = GetComponentsInChildren<Collider2D>();
+		bounds = new Bounds();
+		foreach(var col in colliders)
+			bounds.Encapsulate(col.bounds);		
+	}
+
+	void Update()
     {
 		var dir = Vector2.zero;
 		if(Input.GetKey(KeyCode.LeftArrow))

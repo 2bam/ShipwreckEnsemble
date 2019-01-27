@@ -15,10 +15,7 @@ public class CamController : MonoBehaviour
 		var mult = 3f;
 
 		//https://answers.unity.com/questions/1231701/fitting-bounds-into-orthographic-2d-camera.html
-		var colliders = _main.GetComponentsInChildren<Collider2D>();
-		var bounds = new Bounds();
-		foreach(var col in colliders)
-			bounds.Encapsulate(col.bounds);
+		var bounds = _main.bounds;
 
 		float screenRatio = (float)Screen.width / (float)Screen.height;
 

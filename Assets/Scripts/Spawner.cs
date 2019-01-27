@@ -36,7 +36,8 @@ public class Spawner : MonoBehaviour
         var npc = Instantiate(_cfg.npcPrefab);
         npc.name = "NPC" + _index;
         npc.SetNodeAt(mod.innerNodes.Choice());
-        IconsController.Instance.SpawnNewElement(npc.gameObject);
+		if(IconsController.Instance != null)
+			IconsController.Instance.SpawnNewElement(npc.gameObject);
 
         _index++;
     }
