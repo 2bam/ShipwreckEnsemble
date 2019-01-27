@@ -34,6 +34,12 @@ public static class Utils {
 		return comp.transform.position.x;
 	}
 
+	public static Vector2 RoundVec(Vector2 vec, float step) {
+		vec.x = RoundToStep(vec.x, step);
+		vec.y = RoundToStep(vec.y, step);
+		return vec;
+	}
+
 	// https://github.com/setchi/Unity-LineSegmentsIntersection/blob/master/Assets/LineSegmentIntersection/Scripts/Math2d.cs
 	public static bool LineSegmentsIntersection(Vector2 p1, Vector2 p2, Vector2 p3, Vector3 p4, out Vector2 intersection) {
 		intersection = Vector2.zero;
