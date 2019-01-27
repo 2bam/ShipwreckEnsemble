@@ -169,7 +169,8 @@ public class NPC : MonoBehaviour {
 			Debug.Log($"Need changed from {currentNeed} to {newNeed} for {this}");
 			currentNeed = newNeed;
 			path = null;    //Reset path
-			nodeAt.inUseBy = null;
+			if(nodeAt.inUseBy == this)
+				nodeAt.inUseBy = null;
 		}
 
     }
