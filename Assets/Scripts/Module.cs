@@ -5,12 +5,12 @@ using System.Linq;
 
 
 
-public enum NodeType {
-	//NEVER CHANGE THE ORDER OR REMOVE ANY OF THESE LABELS
-	Way
-	, Door
-	, Kitchen
-}
+//public enum NodeType {
+//	//NEVER CHANGE THE ORDER OR REMOVE ANY OF THESE LABELS
+//	Way
+//	, Door
+//	, Kitchen
+//}
 
 public class Node : INode {
 	public Vector2 position { get => mainPos; }
@@ -43,7 +43,18 @@ public class Module : MonoBehaviour
 
 	public Transform actionPointsObject;
 	public Transform doorPointsObject;
+	Renderer _rend;
 
+	private bool _blocked = false;
+	public bool blocked {
+		get => _blocked;
+		set {
+			if(_blocked != value) {
+				_blocked = value;
+				_rend.material.color = _blocked ? Color.red : Color.white;
+			}
+		}
+	}
 
 	public bool[] walls = new bool[0];
 
@@ -148,7 +159,7 @@ public class Module : MonoBehaviour
 
 		body = GetComponent<Rigidbody2D>();
 		body.velocity = initialVelocity;
-
+		_rend = GetComponentInChildren<Renderer>();
 		var poly = GetComponent<PolygonCollider2D>();
 		int count = poly.GetTotalPointCount();
 

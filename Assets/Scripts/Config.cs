@@ -17,7 +17,6 @@ public class NeedData {
 
 public class Config : MonoBehaviour {
 
-	public NeedData[] needDatas = new NeedData[0];
 
 	public Dictionary<NeedType, NeedData> needDict;
 
@@ -27,6 +26,9 @@ public class Config : MonoBehaviour {
 
 	public float npcSpeedNormal = 2f;
 	public float npcSpeedFast = 4f;
+	public float beingUsedCooldownHours = 1.2f;
+
+	public NeedData[] needDatas = new NeedData[0];
 
 	void Awake() {
 		needDict = needDatas.ToDictionary(nd => nd.type, nd => nd);
