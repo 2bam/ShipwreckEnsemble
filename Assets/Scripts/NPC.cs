@@ -24,7 +24,7 @@ public class NPC : MonoBehaviour {
 	Node _lastNode;
 	public event Action<NPC> onNPCDied = delegate { };
 	float _speed;
-	NeedType currentNeed;
+	public NeedType currentNeed;
 	NeedType maxNeed;
 	public float max;
 	string _coroutineStatus = "";
