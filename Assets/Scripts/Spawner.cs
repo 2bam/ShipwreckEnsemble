@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Spawner : MonoBehaviour
 {
+	Config _cfg;
 	public Module[] modulePrefabs;
 	MainBuilding _main;
 	public float modSpeed;
@@ -11,6 +12,7 @@ public class Spawner : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+		_cfg = FindObjectOfType<Config>();
 		_main = FindObjectOfType<MainBuilding>();
 
     }
@@ -26,6 +28,9 @@ public class Spawner : MonoBehaviour
 		var mod = Instantiate(modulePrefabs[Random.Range(0, modulePrefabs.Length)]);
 		mod.transform.position = new Vector2(sx, this.transform.position.y);
 		mod.initialVelocity = Vector2.down * modSpeed;
+
+		var npc = Instantiate(_cfg.npcPrefab);
+		npc.SetNodeAt(mod.innerNodes.Choice());
 	}
 
     // Update is called once per frame

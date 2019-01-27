@@ -25,6 +25,7 @@ public class Node : INode {
 		this.type = type;
 		this.module = module;
 		this.localPos = position;
+		this.mainPos = position;		//Workaround until taken to main building
 	}
 }
 
@@ -34,6 +35,9 @@ public class Module : MonoBehaviour
 	public Vector2 initialVelocity;
 	[HideInInspector] public Rigidbody2D body;
 	[HideInInspector] public MainBuilding owner;
+	[HideInInspector] public Matrix4x4 ownerLocalToWorld {
+		get => owner == null ? transform.localToWorldMatrix : owner.transform.localToWorldMatrix;
+	}
 	public Material matLine;
 
 	public Transform actionPointsObject;

@@ -21,7 +21,7 @@ public class MainBuilding : MonoBehaviour
 		foreach(var m in GetComponentsInChildren<Module>()) {
 			Annex(null, m);
 			var npc = Instantiate(_cfg.npcPrefab);
-			npc.SetNodeAt(m.innerNodes[0]);
+			npc.SetNodeAt(m.innerNodes.Choice());
 		}
 
 

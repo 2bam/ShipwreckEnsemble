@@ -34,10 +34,13 @@ public class NPC : MonoBehaviour {
 
 	public void SetNodeAt(Node node) {
 		nodeAt = node;
-		var p = node.module.owner.transform.localToWorldMatrix.MultiplyPoint(node.mainPos);
+		var p = node.module.ownerLocalToWorld.MultiplyPoint(node.mainPos);
 		p.z = -1.6f;
 		transform.position = p;
-		transform.SetParent(node.module.owner.transform);
+		if(node.module.owner != null)
+			transform.SetParent(node.module.owner.transform);
+		else
+			transform.SetParent(node.module.transform);
 	}
 
 	void Start() {
@@ -52,7 +55,7 @@ public class NPC : MonoBehaviour {
 		Gizmos.color = Color.red;
 		if(path != null) {
 			var nextPosMain = path[pathIndex].mainPos;
-			var nextPos = nodeAt.module.owner.transform.localToWorldMatrix.MultiplyPoint(nextPosMain);
+			var nextPos = nodeAt.module.ownerLocalToWorld.MultiplyPoint(nextPosMain);
 			Gizmos.DrawSphere(nextPos, 0.007f);
 		}
 	}
@@ -60,7 +63,8 @@ public class NPC : MonoBehaviour {
 		while(true) {
 			if(currentNeed == NeedType.None) {
 				if(path == null) {
-					path = Pathfinder.BFS(nodeAt, nodeAt.module.owner.allNodes.Choice())
+					var nodes = nodeAt.module.owner != null ? nodeAt.module.owner.allNodes : nodeAt.module.innerNodes;
+					path = Pathfinder.BFS(nodeAt, nodes.Choice())
 						.Cast<Node>().Skip(1).ToList();
 					pathIndex = 0;
 					if(path.Count == 0)
@@ -72,7 +76,7 @@ public class NPC : MonoBehaviour {
 				var delta = Vector3.zero;
 				do {
 					var nextPosMain = path[pathIndex].mainPos;
-					var nextPos = nodeAt.module.owner.transform.localToWorldMatrix.MultiplyPoint(nextPosMain);
+					var nextPos = nodeAt.module.ownerLocalToWorld.MultiplyPoint(nextPosMain);
 					delta = nextPos - this.transform.position;
 					delta.z = 0f;
 
