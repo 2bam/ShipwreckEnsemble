@@ -11,8 +11,12 @@ public class MainBuilding : MonoBehaviour
 	public float linearSpeed = 10f;
 	//public float angularSpeed = 45f;
 	public float angle = 0;
+	[HideInInspector] public Bounds bounds = new Bounds();
 
 	public List<Node> allNodes = new List<Node>();
+	public SpriteRenderer doorPrefab;
+
+
 
     void Start()
     {
@@ -28,8 +32,9 @@ public class MainBuilding : MonoBehaviour
     }
 
 	public void OnAnnexCollisionEnter2D(Module module, Collision2D collision) {
-		Debug.Log($"Annex collision enter {module} {collision.collider} {collision.otherCollider} ");
+		Debug.Log($"Annex collision enter {module}: {collision.collider} {collision.otherCollider} ");
 		var otherMod = collision.collider.GetComponentInParent<Module>();
+		//collision.GetContact(0).
 		if(otherMod != null && otherMod.owner != this)
 			Annex(module, otherMod);
 	}
@@ -49,6 +54,9 @@ public class MainBuilding : MonoBehaviour
 			Debug.Log("Can't annex while rotating");
 			return;
 		}
+
+		//Make static
+		newMod.Lock();
 
 		allNodes.AddRange(newMod.innerNodes);
 
@@ -72,54 +80,63 @@ public class MainBuilding : MonoBehaviour
 		if(ourMod != null) {
 			//TODO:Check other collisions or nearby (<1 delta y distance) module to add doors
 
-			var best = ourMod.innerNodes
-				.SelectMany(on =>
-					newMod.innerNodes.Select(nn => Tuple.Create(on, nn))
-				)
-				.OrderBy(t => (t.Item1.mainPos - t.Item2.mainPos).sqrMagnitude)
-				.First()
+			var pairs = ourMod.innerNodes
+				.SelectMany(ourNode =>
+					newMod.innerNodes.Select(newNode => (ourNode, newNode))
+				);
+
+			//TODO IMPORTANT: Detect if |x|>|y|
+			var candidates = pairs
+				.Select(t => (delta: t.Item1.mainPos - t.Item2.mainPos, mag: (t.Item1.mainPos - t.Item2.mainPos).sqrMagnitude, t.ourNode, t.newNode))
+				.Where(t => Mathf.Abs(t.delta.x) < 0.5f)
+				.OrderBy(t => t.mag)
+				.Select(t => (t.ourNode, t.newNode))
 				;
 
-			var nn_xf = best.Item2.module.transform;
-			//TODO: Using X depends on rotation!!
-			nn_xf.SetX(nn_xf.GetX()
-				+ transform.localToWorldMatrix.MultiplyPoint(best.Item1.mainPos).x
-				- transform.localToWorldMatrix.MultiplyPoint(best.Item2.mainPos).x
-				);
-			PatchMainPos(newMod);
+			//FIXME:
+			candidates = candidates.Take(1);
 
-			best.Item1.neighborsSet.Add(best.Item2);
-			best.Item2.neighborsSet.Add(best.Item1);
+			foreach(var good in candidates) {
 
-			//var nearest = GetComponentsInChildren<Module>()
-			//		.SelectMany(m =>
-			//			m.doorPos.Select(p => Tuple.Create(m, p)
-			//		)
-			//		.OrderBy(m => (m.transform.position - newMod.transform.position).sqrMagnitude)
-			//		.Se
-			//		.First();
+				var wp1 = transform.localToWorldMatrix.MultiplyPoint(good.ourNode.mainPos);
+				var wp2 = transform.localToWorldMatrix.MultiplyPoint(good.newNode.mainPos);
 
-			//var np = newMod.transform.position;
-			//np.x = nearest.transform.position.x;
-			//newMod.transform.position = np;
+				//FIXME:
+				//Vector2 intersection1, intersection2;
+				//Module.LineData ld1, ld2;
+				//if(!good.newNode.module.GetOkIntersection(wp1, wp2, out intersection1, out ld1))
+				//	continue;
+				//if(!good.ourNode.module.GetOkIntersection(wp1, wp2, out intersection2, out ld2))
+				//	continue;
+				//var intersection = (intersection1 + intersection2) * .5f;
+				var intersection = (wp1 + wp2) * .5f;
+
+				var nn_xf = good.newNode.module.transform;
+				//FIXME: Using X depends on rotation!!
+				nn_xf.SetX(nn_xf.GetX()
+					+ wp1.x
+					- wp2.x
+					);
+				PatchMainPos(newMod);
+
+				var door = Instantiate(doorPrefab, this.transform);
+				door.transform.rotation = Utils.RotationFromNormalizedDir((wp1 - wp2).normalized);
+				door.transform.position = intersection;
+
+				good.ourNode.neighborsSet.Add(good.newNode);
+				good.newNode.neighborsSet.Add(good.ourNode);
+			}
 		}
-		//Make static
-		newMod.Lock();
+
 	}
 
-	List<Node> _npath;
-
-    // Update is called once per frame
     void Update()
     {
-
-
 		var dir = Vector2.zero;
 		if(Input.GetKey(KeyCode.LeftArrow))
 			dir = Vector2.left;
 		if(Input.GetKey(KeyCode.RightArrow))
 			dir = Vector2.right;
-
 
 
 		if(Input.GetKeyDown(KeyCode.A))
@@ -128,24 +145,47 @@ public class MainBuilding : MonoBehaviour
 			angle += 90;
 
 
-
 		transform.position += (Vector3)dir * Time.deltaTime * linearSpeed;
 		transform.rotation = Quaternion.Euler(0, 0, angle);
 
 
-		if(Input.GetKeyDown(KeyCode.B)) {
-			var mods = GetComponentsInChildren<Module>();
-			var l = mods
-				.OrderBy(m => m.transform.position.y)
-				.ToList();
+		//if(Input.GetKeyDown(KeyCode.B)) {
+		//	var mods = GetComponentsInChildren<Module>();
+		//	var l = mods
+		//		.OrderBy(m => m.transform.position.y)
+		//		.ToList();
 
-			var path = Pathfinder.BFS(l[0].innerNodes[0], l[l.Count - 1].innerNodes[0]);
-			if(path != null) {
-				_npath = path.Cast<Node>().ToList();
-			}
+		//	var path = Pathfinder.BFS(l[0].innerNodes[0], l[l.Count - 1].innerNodes[0]);
+		//	if(path != null) {
+		//		_npath = path.Cast<Node>().ToList();
+		//	}
 
-		}
+		//}
     }
+
+	private void LateUpdate() {
+		var mult = 3f;
+
+		//https://answers.unity.com/questions/1231701/fitting-bounds-into-orthographic-2d-camera.html
+		var cols = GetComponentsInChildren<Collider2D>();
+		var bounds = new Bounds();
+		foreach(var col in cols)
+			bounds.Encapsulate(col.bounds);
+		float screenRatio = (float)Screen.width / (float)Screen.height;
+
+		float targetRatio = bounds.size.x / bounds.size.y;
+
+		if(screenRatio >= targetRatio) {
+			Camera.main.orthographicSize = mult * bounds.size.y / 2;
+		}
+		else {
+			float differenceInSize = targetRatio / screenRatio;
+			Camera.main.orthographicSize = mult * bounds.size.y / 2 * differenceInSize;
+		}
+
+		//transform.position = new Vector3(bounds.center.x, bounds.center.y, -1f);
+
+	}
 
 	private void OnDrawGizmos() {
 		//Gizmos.color = Color.yellow;
@@ -156,9 +196,9 @@ public class MainBuilding : MonoBehaviour
 
 		Gizmos.color = Color.magenta;
 		Gizmos.matrix = transform.localToWorldMatrix;
-		if(_npath != null)
-			for(int i = 0; i < _npath.Count - 1; i++)
-				Gizmos.DrawLine(_npath[i].mainPos, _npath[i + 1].mainPos);
+		//if(_npath != null)
+		//	for(int i = 0; i < _npath.Count - 1; i++)
+		//		Gizmos.DrawLine(_npath[i].mainPos, _npath[i + 1].mainPos);
 	}
 
 	private void OnCollisionEnter2D(Collision2D collision) {

@@ -9,6 +9,7 @@ public class NeedData {
 	public NeedType type = NeedType.None;
 	[Range(1, 10)] public int priority = 5;
 	[Range(0f, 1f)] public float rateRise = 0.1f;
+	[Range(0f, 1f)] public float rateFall = 0.1f;
 	public bool blocksModule = false;
 	public bool knowsAvail = true;
 	public float activityDuration = 1f;

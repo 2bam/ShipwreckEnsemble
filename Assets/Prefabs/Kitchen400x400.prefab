@@ -258,7 +258,7 @@ GameObject:
   - component: {fileID: 1422473078076710127}
   - component: {fileID: 2301304692126381368}
   m_Layer: 0
-  m_Name: Bathroom400x400
+  m_Name: Kitchen400x400
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -441,7 +441,7 @@ GameObject:
   - component: {fileID: 4569289326729219939}
   - component: {fileID: 5311327971492396596}
   m_Layer: 0
-  m_Name: Toilet
+  m_Name: Kitchen
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -498,7 +498,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 361989720fff4d543b8cad1069eb0365, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0921d688f0437014fbb5f61b75e5a2cb, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -521,4 +521,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e27d61be211b34540aa2381cbc2853dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  needType: 1
+  needType: 2

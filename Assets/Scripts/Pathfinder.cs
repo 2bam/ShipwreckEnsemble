@@ -62,6 +62,8 @@ public static class Pathfinder {
 			current = parent[current];
 		}
 		path.Add(source);
+		path.Reverse();
+
         //return source.position.
 		return path;
 	}

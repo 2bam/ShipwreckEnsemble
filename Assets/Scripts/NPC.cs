@@ -20,6 +20,7 @@ public class NPC : MonoBehaviour {
 	public Dictionary<NeedType, float> needs;
 
 	public Node nodeAt;
+	Node _lastNode;
 	public event Action<NPC> onNPCDied = delegate { };
 	float _speed;
 	NeedType currentNeed;
@@ -33,6 +34,7 @@ public class NPC : MonoBehaviour {
 	int pathIndex;
 
 	public void SetNodeAt(Node node) {
+		_lastNode = (nodeAt == null ? node : nodeAt);
 		nodeAt = node;
 		var p = node.module.ownerLocalToWorld.MultiplyPoint(node.mainPos);
 		p.z = -1.6f;
@@ -61,10 +63,41 @@ public class NPC : MonoBehaviour {
 	}
 	IEnumerator Think() {
 		while(true) {
-			if(currentNeed == NeedType.None) {
+			Node target = null;
+			var nodes = nodeAt.module.owner != null ? nodeAt.module.owner.allNodes : nodeAt.module.innerNodes;
+
+			if(path == null && currentNeed != NeedType.None && currentNeed == nodeAt.needType) {
+				if(nodeAt.inUseBy != null && nodeAt.inUseBy != this) {
+					path = new List<Node>() { _lastNode };
+					pathIndex = 0;
+				}
+				else {
+					nodeAt.inUseBy = this;
+
+					if(!needs.ContainsKey(currentNeed) || needs[currentNeed] == 0f) {
+						nodeAt.inUseBy = null;
+						currentNeed = NeedType.None;
+					}
+				}
+				yield return null;
+				continue;
+			}
+
+			if(currentNeed != nodeAt.needType) {
+				target = nodes
+					.Where(n => n.needType == currentNeed)
+					.OrderBy(n => (n.mainPos - (Vector2)transform.localPosition).sqrMagnitude)
+					.FirstOrDefault()
+					;
+			}
+			if(target == null) {
+				target = nodes.Choice();
+			}
+
+			if(target != null) {
+
 				if(path == null) {
-					var nodes = nodeAt.module.owner != null ? nodeAt.module.owner.allNodes : nodeAt.module.innerNodes;
-					path = Pathfinder.BFS(nodeAt, nodes.Choice())
+					path = Pathfinder.BFS(nodeAt, target)
 						.Cast<Node>().Skip(1).ToList();
 					pathIndex = 0;
 					if(path.Count == 0)
@@ -82,17 +115,19 @@ public class NPC : MonoBehaviour {
 
 					if(delta.sqrMagnitude > _speed*_speed*Time.deltaTime*Time.deltaTime)
 						delta.Normalize();
-					//transform.rotation = Quaternion.LookRotation(delta, Vector3.up);
+
+					transform.rotation = Utils.RotationFromNormalizedDir(delta);
 					transform.position += delta * _speed * Time.deltaTime;
 					yield return null;
 				}
-				while(delta.sqrMagnitude > 0.005f);
+				while(path!=null && delta.sqrMagnitude > 0.005f);
 
-				
-				SetNodeAt(path[pathIndex]);
-				pathIndex++;
-				if(pathIndex == path.Count)
-					path = null;
+				if(path != null) {
+					SetNodeAt(path[pathIndex]);
+					pathIndex++;
+					if(pathIndex == path.Count)
+						path = null;
+				}
 			}
 			yield return null;
 		}
@@ -106,6 +141,9 @@ public class NPC : MonoBehaviour {
 
 		//TODO: Maybe refresh slower than each frame (every 1sec?)
 		foreach(var k in raiseKeys) {
+			if(nodeAt.needType == k)
+				needs[k] = Mathf.Max(0, needs[k] - _cfg.needDict[k].rateFall * Time.deltaTime / _cfg.secondsPerGameHour);
+			else
 			needs[k] += _cfg.needDict[k].rateRise * Time.deltaTime / _cfg.secondsPerGameHour;
 		}
 
@@ -128,8 +166,10 @@ public class NPC : MonoBehaviour {
 			.FirstOrDefault();
 
 		if(newNeed != currentNeed) {
-			currentNeed = newNeed;
 			Debug.Log($"Need changed from {currentNeed} to {newNeed} for {this}");
+			currentNeed = newNeed;
+			path = null;    //Reset path
+			nodeAt.inUseBy = null;
 		}
 
     }

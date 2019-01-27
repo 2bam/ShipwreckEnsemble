@@ -4,12 +4,13 @@ using UnityEngine;
 
 public class ActionObject : MonoBehaviour
 {
-	public NodeType type;
+	//public NodeType nodeType;
+	public NeedType needType;
 
     // Start is called before the first frame update
     void Start()
     {
-		Debug.Assert(type != NodeType.Door, "Action type can't be door " + this);
+		//Debug.Assert(type != NodeType.Door, "Action type can't be door " + this);
     }
 
     // Update is called once per frame
