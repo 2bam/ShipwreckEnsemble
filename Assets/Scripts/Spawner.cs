@@ -22,9 +22,22 @@ public class Spawner : MonoBehaviour
         _moduleBag = new ShuffleBag<Module>(modulePrefabs);
     }
 
-    void Spawn()
+
+    private void UpdateSpawnerPosition()
     {
-        var bounds = _main.bounds;
+        var p = transform.position;
+        float objPadding = 5;
+        float camPosY = Camera.main.transform.position.y;
+        float camSizeY = Camera.main.orthographicSize;
+        float spawnPosY = camPosY + camSizeY + objPadding;
+
+        p.y = spawnPosY;
+        transform.position = p;
+    }
+
+
+    void Spawn() {
+		var bounds = _main.bounds;
 
         Debug.Log("Bounds " + bounds);
         var sx = Random.Range(bounds.min.x, bounds.max.x);
@@ -36,7 +49,7 @@ public class Spawner : MonoBehaviour
         var npc = Instantiate(_cfg.npcPrefab);
         npc.name = "NPC" + _index;
         npc.SetNodeAt(mod.innerNodes.Choice());
-        IconsController.Instance.SpawnNewElement(npc.gameObject);
+        //IconsController.Instance.SpawnNewElement(npc.gameObject.GetComponent<NPC>());
 
         _index++;
     }
@@ -49,10 +62,8 @@ public class Spawner : MonoBehaviour
             Spawn();
     }
 
-    private void LateUpdate()
-    {
-        var p = transform.position;
-        p.y = _main.bounds.max.y + 10f;
-        transform.position = p;
+
+	private void LateUpdate() {
+        UpdateSpawnerPosition();
     }
 }
