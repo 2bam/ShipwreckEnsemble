@@ -5,13 +5,14 @@ using System;
 
 public static class Pathfinder {
 
-    static bool FilterNodes(INode node)
-    {
-        return true;
-    }
+    //static bool FilterNodes(INode node)
+    //{
+    //    return true;
+    //}
 
 
-    public static List<INode> BFS(INode source, INode dest) {
+	//NOTE: Always returns at least a list of one (it's source)
+    public static List<INode> BFS(INode source, INode dest, Func<INode, bool> filterNeighbors) {
 
 		//initialization
 		var visited = new HashSet<INode>();// add contains remove
@@ -41,8 +42,6 @@ public static class Pathfinder {
 
 			if(current == dest) break;
 
-            //Function to eventually filter nodes.
-            Func<INode, bool> filterNeighbors = new Func<INode, bool>(FilterNodes);
 
             //Visit and add it's neighbors to the queue.
             foreach (var node in current.neighbors)

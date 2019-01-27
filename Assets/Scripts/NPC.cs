@@ -18,13 +18,16 @@ public enum NeedType {
 public class NPC : MonoBehaviour {
 	Config _cfg;
 	public Dictionary<NeedType, float> needs;
+	public Dictionary<Node, float> nodeCooldownSecs = new Dictionary<Node, float>();
 
 	public Node nodeAt;
 	Node _lastNode;
 	public event Action<NPC> onNPCDied = delegate { };
 	float _speed;
 	NeedType currentNeed;
+	NeedType maxNeed;
 	public float max;
+	string _coroutineStatus = "";
 
 	NeedType[] raiseKeys;
 
@@ -62,51 +65,98 @@ public class NPC : MonoBehaviour {
 			Gizmos.DrawSphere(nextPos, 0.007f);
 		}
 	}
+
+	bool IsNodeWalkable(INode abstractNode) {
+		var node = (Node)abstractNode;
+
+		//Don't allow to enter blocked, but do allow exit if we're at it.
+		if(node.module.blocked && nodeAt.module != node.module)	
+			return false;
+
+		//If in use but not by us
+		if(node.inUseBy != null && node.inUseBy != this)
+			return false;
+
+		//If in cooldown (tried to enter and failed)
+		if(nodeCooldownSecs.ContainsKey(node))
+			return false;
+
+		return true;
+	}
+
 	IEnumerator Think() {
+		Node target = null;
 		while(true) {
-			Node target = null;
+			// Refresh nodes (main building or "raft")
 			var nodes = nodeAt.module.owner != null ? nodeAt.module.owner.allNodes : nodeAt.module.innerNodes;
 
-			if(path == null && currentNeed != NeedType.None && currentNeed == nodeAt.needType) {
-				if(nodeAt.inUseBy != null && nodeAt.inUseBy != this) {
-					path = new List<Node>() { _lastNode };
-					pathIndex = 0;
-				}
-				else {
-					nodeAt.inUseBy = this;
+			//Change need outside working loop...
+			if(maxNeed != currentNeed) {
+				Debug.Log($"Need changed from {currentNeed} to {maxNeed} for {this}");
+				currentNeed = maxNeed;
+				target = null;
+				path = null;
+			}
 
-					if(!needs.ContainsKey(currentNeed) || needs[currentNeed] == 0f) {
+			//If we have a target and we are at it.
+			if(target == nodeAt) {
+				
+				if(currentNeed != NeedType.None && currentNeed == nodeAt.needType) {
+
+					//If empty (free to use), occupy it and set relevant flags.
+					if(nodeAt.inUseBy == null) {
+						bool blocksModule = _cfg.needDict[currentNeed].blocksModule;
+						if(blocksModule)
+							nodeAt.module.blocked = true;
+
+						nodeAt.inUseBy = this;  //USE IT
+						float needValue;
+						while(needs.TryGetValue(currentNeed, out needValue) && needValue > 0f) { //TODO: Or sleep interrupt
+							_coroutineStatus = "working";
+							yield return null;  //Wait (decrease in Update)
+						}
 						nodeAt.inUseBy = null;
-						currentNeed = NeedType.None;
+
+						if(blocksModule)
+							nodeAt.module.blocked = false;
 					}
-				}
-				yield return null;
-				continue;
-			}
-
-			if(currentNeed != nodeAt.needType) {
-				target = nodes
-					.Where(n => n.needType == currentNeed)
-					.OrderBy(n => (n.mainPos - (Vector2)transform.localPosition).sqrMagnitude)
-					.FirstOrDefault()
-					;
-			}
-			if(target == null) {
-				target = nodes.Choice();
-			}
-
-			if(target != null) {
-
-				if(path == null) {
-					path = Pathfinder.BFS(nodeAt, target)
-						.Cast<Node>().Skip(1).ToList();
-					pathIndex = 0;
-					if(path.Count == 0)
+					else {  //If in use, cool down and recalc path
+						nodeCooldownSecs[nodeAt] = _cfg.beingUsedCooldownHours * Time.deltaTime / _cfg.secondsPerGameHour;
 						path = null;
+						target = null;
+					}
+
+
+				}
+				else {  //Was idle walking, reset target
+					path = null;
+					target = null;
+				}
+			}
+
+			// If has target and not a path, rebuild path and walk it
+			// (until reach or path set to null from Update)
+			if(target != null && path == null) {
+				if(path == null) {
+					path = Pathfinder.BFS(nodeAt, target, IsNodeWalkable)
+						.Cast<Node>().ToList();
+					pathIndex = 0;
+
+					if(path.Count == 0) {
+						path = null;
+						_coroutineStatus = "Path error";
+						//Error? This shouldn't happen. At least should find nodeAt.
+					}
+					else
+						_coroutineStatus = "Path found";
+
 					yield return null;
 					continue;
 				}
+			}
 
+			if(target != null && path != null) {
+				// Interpolate position until reached
 				var delta = Vector3.zero;
 				do {
 					var nextPosMain = path[pathIndex].mainPos;
@@ -123,13 +173,37 @@ public class NPC : MonoBehaviour {
 				}
 				while(path!=null && delta.sqrMagnitude > 0.005f);
 
+				// Remember node we reached
 				if(path != null) {
 					SetNodeAt(path[pathIndex]);
 					pathIndex++;
 					if(pathIndex == path.Count)
-						path = null;
+						path = null;	//No more path.
 				}
 			}
+			
+			// If without target, find a target
+			if(target == null) {
+				if(currentNeed != nodeAt.needType) {
+					target = nodes
+						.Where(n => n.needType == currentNeed)
+						//TODO: Filter by cooldown? or IsWalkable??
+						.OrderBy(n => (n.mainPos - (Vector2)transform.localPosition).sqrMagnitude)
+						.FirstOrDefault()
+						;
+
+					_coroutineStatus = "Walk purpose";
+					
+				}
+				//If still null, find any node to walk to.
+				if(target == null) {
+					target = nodes.Choice();
+					_coroutineStatus = "Walk idle";
+
+				}
+
+			}
+
 			yield return null;
 		}
 	}
@@ -137,7 +211,8 @@ public class NPC : MonoBehaviour {
     void Update()
     {
 		max = needs.Values.Max();
-		_debug = $"{currentNeed} max={max:F2}";
+		_debug = $"{currentNeed} max={max:F2}\n{_coroutineStatus}\n";
+		_debug += string.Join("\n", needs.OrderBy(kv => kv.Key.ToString()).Select(kv => $"{kv.Key,15}: {kv.Value:F2}"));
 		_tm.text = _debug;
 
 		//TODO: Maybe refresh slower than each frame (every 1sec?)
@@ -145,7 +220,7 @@ public class NPC : MonoBehaviour {
 			if(nodeAt.needType == k)
 				needs[k] = Mathf.Max(0, needs[k] - _cfg.needDict[k].rateFall * Time.deltaTime / _cfg.secondsPerGameHour);
 			else
-			needs[k] += _cfg.needDict[k].rateRise * Time.deltaTime / _cfg.secondsPerGameHour;
+				needs[k] += _cfg.needDict[k].rateRise * Time.deltaTime / _cfg.secondsPerGameHour;
 		}
 
 		if(max >= 1f) {
@@ -160,19 +235,29 @@ public class NPC : MonoBehaviour {
 			_speed = _cfg.npcSpeedNormal;
 		}
 
-		var newNeed = needs
+		foreach(var nodeKey in nodeCooldownSecs.Keys.ToArray()) {
+			var val = nodeCooldownSecs[nodeKey] - Time.deltaTime;
+			if(val > 0f)
+				nodeCooldownSecs[nodeKey] = val;
+			else
+				nodeCooldownSecs.Remove(nodeKey);
+		}
+
+		maxNeed = needs
 			.Where(kv => kv.Value > 0.6f)
 			.OrderBy(kv => _cfg.needDict[kv.Key].priority)
 			.Select(kv => kv.Key)
 			.FirstOrDefault();
 
-		if(newNeed != currentNeed) {
-			Debug.Log($"Need changed from {currentNeed} to {newNeed} for {this}");
-			currentNeed = newNeed;
-			path = null;    //Reset path
-			if(nodeAt.inUseBy == this)
-				nodeAt.inUseBy = null;
-		}
+		//if(maxNeed != currentNeed) {
+		//	Debug.Log($"Need changed from {currentNeed} to {newNeed} for {this}");
+		//	currentNeed = maxNeed;
+
+		//	//TODO: Only reset path if sleeping
+		//	//path = null;    //Reset path
+		//	//if(nodeAt.inUseBy == this)
+		//	//	nodeAt.inUseBy = null;
+		//}
 
     }
 }
